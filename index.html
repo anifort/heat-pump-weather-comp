@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Compensation Regression Chart</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+
+    <!-- Increased max-w-2xl to max-w-4xl to make the chart container bigger -->
+    <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-full">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Weather Compensation Regression Chart</h1>
+        <p class="text-center text-gray-600 mb-8">This chart visualizes your weather compensation values and the resulting regression line, showing the water temperature for any given outside temperature. You can now drag the blue dots to change the values and see the line update!</p>
+
+        <div class="flex justify-center items-center mb-6 space-x-4">
+            <div class="flex items-center space-x-2">
+                <div class="w-4 h-4 rounded-full bg-blue-500"></div>
+                <span class="text-sm font-medium text-gray-700">Your Data Points</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <div class="w-4 h-1 bg-red-500 rounded-full"></div>
+                <span class="text-sm font-medium text-gray-700">Linear Regression Line</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <div class="w-4 h-4 rounded-full bg-green-500"></div>
+                <span class="text-sm font-medium text-gray-700">Point at 8°C</span>
+            </div>
+        </div>
+        
+        <!-- Added a fixed height to make the chart taller -->
+        <div class="bg-gray-50 rounded-xl p-4 shadow-inner h-[600px]">
+            <canvas id="regressionChart"></canvas>
+        </div>
+
+        <div class="mt-8 p-4 bg-gray-50 rounded-lg">
+            <h2 class="text-xl font-semibold mb-2 text-gray-700">Your Values:</h2>
+            <p class="text-sm text-gray-500 mb-4">Click a point on the chart to select it, then use the arrow keys to move it one degree at a time.</p>
+            <table id="values-table" class="w-full text-left text-gray-600 border-collapse">
+                <thead>
+                    <tr>
+                        <th class="py-2 px-4 border-b-2 border-gray-300 font-semibold text-gray-800">Outside Temp (°C)</th>
+                        <th class="py-2 px-4 border-b-2 border-gray-300 font-semibold text-gray-800">Water Temp (°C)</th>
+                    </tr>
+                </thead>
+                <tbody id="values-table-body">
+                    <!-- Table rows will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let chart;
+            let draggedPointIndex = null;
+            let selectedPointIndex = null;
+            const data = [
+                { x: -5, y: 50 },
+                { x: 18, y: 25 }
+            ];
+            const specificPointX = 8;
+            
+            const valuesTableBody = document.getElementById('values-table-body');
+
+            function updateValuesTable(allPoints) {
+                let tableHtml = '';
+                allPoints.forEach(point => {
+                    tableHtml += `
+                        <tr class="border-b border-gray-200 last:border-b-0">
+                            <td class="py-2 px-4">${point.x}°C</td>
+                            <td class="py-2 px-4">${point.y.toFixed(2)}°C</td>
+                        </tr>
+                    `;
+                });
+                valuesTableBody.innerHTML = tableHtml;
+            }
+
+            function updateChart() {
+                // Ensure data points are sorted by x-value for correct line drawing
+                data.sort((a, b) => a.x - b.x);
+
+                const x1 = data[0].x;
+                const y1 = data[0].y;
+                const x2 = data[1].x;
+                const y2 = data[1].y;
+
+                // Handle the case where the two points have the same x value to avoid division by zero
+                const m = (x2 - x1) !== 0 ? (y2 - y1) / (x2 - x1) : 0;
+                const b = y1 - m * x1;
+
+                const regressionLineData = [];
+                const minX = -10;
+                const maxX = 25;
+
+                // Iterate through the entire temperature range to build the regression line
+                for (let x = minX; x <= maxX; x += 1) {
+                    let y;
+                    if (x <= x1) {
+                        // For temperatures below the lowest data point, use the lowest point's y value
+                        y = y1;
+                    } else if (x >= x2) {
+                        // For temperatures above the highest data point, use the highest point's y value
+                        y = y2;
+                    } else {
+                        // For temperatures between the two points, use the linear regression formula
+                        y = m * x + b;
+                    }
+                    regressionLineData.push({ x: x, y: y });
+                }
+                
+                let specificPointY;
+                if (specificPointX <= x1) {
+                    specificPointY = y1;
+                } else if (specificPointX >= x2) {
+                    specificPointY = y2;
+                } else {
+                    specificPointY = m * specificPointX + b;
+                }
+                const specificPointData = [{ x: specificPointX, y: specificPointY }];
+
+                // Combine all data points for the table and sort them
+                const allPoints = [
+                    { x: data[0].x, y: data[0].y },
+                    { x: data[1].x, y: data[1].y },
+                    { x: specificPointX, y: specificPointY }
+                ].sort((a, b) => a.x - b.x);
+
+                // Update point styles based on selection
+                const pointBorderColors = data.map((point, index) => index === selectedPointIndex ? 'rgba(59, 130, 246, 1)' : 'rgba(59, 130, 246, 0.5)');
+                const pointBorderWidths = data.map((point, index) => index === selectedPointIndex ? 3 : 1);
+
+                chart.data.datasets[0].data = data;
+                chart.data.datasets[0].pointBorderColor = pointBorderColors;
+                chart.data.datasets[0].pointBorderWidth = pointBorderWidths;
+                chart.data.datasets[1].data = regressionLineData;
+                chart.data.datasets[2].data = specificPointData;
+                chart.update();
+                updateValuesTable(allPoints);
+            }
+
+            const ctx = document.getElementById('regressionChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Your Data Points',
+                        data: data,
+                        backgroundColor: 'rgba(59, 130, 246, 1)',
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }, {
+                        label: 'Regression Line',
+                        data: [],
+                        type: 'line',
+                        fill: false,
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        // Make the points on the line visible
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }, {
+                        label: 'Point at 8°C',
+                        data: [{ x: 8, y: 0 }],
+                        backgroundColor: 'rgba(34, 197, 94, 1)', // Green
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        pointRadius: 8,
+                        pointHoverRadius: 10
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Outside Temperature (°C)',
+                                font: {
+                                    size: 14
+                                }
+                            },
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(209, 213, 219, 0.5)'
+                            },
+                            min: -10, // Fixed x-axis min
+                            max: 25  // Fixed x-axis max
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Water Temperature (°C)',
+                                font: {
+                                    size: 14
+                                }
+                            },
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(209, 213, 219, 0.5)'
+                            },
+                            min: 20, // Fixed y-axis min
+                            max: 60  // Fixed y-axis max
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.datasetIndex === 0) {
+                                        label += `(${context.parsed.x}°C, ${context.parsed.y}°C)`;
+                                    } else if (context.datasetIndex === 1) {
+                                        label += `When Outside is ${context.parsed.x}°C, Water is ${context.parsed.y}°C`;
+                                    } else if (context.datasetIndex === 2) {
+                                        label += `Outside: ${context.parsed.x}°C, Water: ${context.parsed.y.toFixed(2)}°C`;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Initial chart render
+            updateChart();
+
+            // Make the chart interactive
+            const canvas = document.getElementById('regressionChart');
+
+            function getRelativeMousePos(event) {
+                const rect = canvas.getBoundingClientRect();
+                let clientX = event.clientX;
+                let clientY = event.clientY;
+
+                if (event.touches) {
+                    clientX = event.touches[0].clientX;
+                    clientY = event.touches[0].clientY;
+                }
+
+                return {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
+                };
+            }
+
+            canvas.addEventListener('mousedown', startDrag);
+            canvas.addEventListener('touchstart', startDrag);
+
+            function startDrag(event) {
+                const points = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
+                if (points.length && points[0].datasetIndex === 0) {
+                    draggedPointIndex = points[0].index;
+                    selectedPointIndex = points[0].index;
+                    canvas.style.cursor = 'grabbing';
+                    document.addEventListener('mousemove', drag);
+                    document.addEventListener('mouseup', endDrag);
+                    document.addEventListener('touchmove', drag);
+                    document.addEventListener('touchend', endDrag);
+                } else {
+                    selectedPointIndex = null;
+                }
+                updateChart();
+            }
+
+            function drag(event) {
+                if (draggedPointIndex !== null) {
+                    event.preventDefault();
+                    const mousePos = getRelativeMousePos(event);
+                    const newX = chart.scales.x.getValueForPixel(mousePos.x);
+                    const newY = chart.scales.y.getValueForPixel(mousePos.y);
+                    
+                    data[draggedPointIndex].x = Math.round(Math.max(-10, Math.min(25, newX)));
+                    data[draggedPointIndex].y = Math.round(Math.max(20, Math.min(60, newY)));
+
+                    updateChart();
+                }
+            }
+
+            function endDrag() {
+                draggedPointIndex = null;
+                canvas.style.cursor = 'grab';
+                document.removeEventListener('mousemove', drag);
+                document.removeEventListener('mouseup', endDrag);
+                document.removeEventListener('touchmove', drag);
+                document.removeEventListener('touchend', endDrag);
+            }
+
+            document.addEventListener('keydown', (event) => {
+                if (selectedPointIndex !== null) {
+                    let point = data[selectedPointIndex];
+                    let changed = false;
+
+                    switch (event.key) {
+                        case 'ArrowUp':
+                            point.y = Math.round(Math.min(60, point.y + 1));
+                            changed = true;
+                            break;
+                        case 'ArrowDown':
+                            point.y = Math.round(Math.max(20, point.y - 1));
+                            changed = true;
+                            break;
+                        case 'ArrowLeft':
+                            point.x = Math.round(Math.max(-10, point.x - 1));
+                            changed = true;
+                            break;
+                        case 'ArrowRight':
+                            point.x = Math.round(Math.min(25, point.x + 1));
+                            changed = true;
+                            break;
+                    }
+
+                    if (changed) {
+                        event.preventDefault();
+                        updateChart();
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
