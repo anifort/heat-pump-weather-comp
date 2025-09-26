@@ -24,6 +24,48 @@
     <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-full">
         <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Weather Compensation Regression Chart</h1>
         <p class="text-center text-gray-600 mb-8">This chart visualizes your weather compensation values and the resulting regression line, showing the water temperature for any given outside temperature. You can now drag the blue dots to change the values and see the line update!</p>
+        
+        <!-- New section for defined values -->
+        <div class="flex flex-col md:flex-row justify-center items-center mb-6 space-y-4 md:space-y-0 md:space-x-8 text-gray-700">
+            <!-- Cold Weather section -->
+            <div class="text-center p-4 bg-gray-50 rounded-lg shadow-sm w-full md:w-auto">
+                <p class="font-semibold text-lg mb-2">Cold weather</p>
+                <div class="flex items-center justify-center space-x-2">
+                    <label for="cold-outside-input" class="text-sm font-medium">Outside:</label>
+                    <input type="number" id="cold-outside-input" value="-5" class="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-center text-blue-500 font-bold" min="-10" max="25" step="1">
+                    <span class="text-sm">°C</span>
+                </div>
+                <div class="flex items-center justify-center space-x-2 mt-2">
+                    <label for="cold-water-input" class="text-sm font-medium">Water Target:</label>
+                    <input type="number" id="cold-water-input" value="47" class="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-center text-blue-500 font-bold" min="16" max="60" step="1">
+                    <span class="text-sm">°C</span>
+                </div>
+            </div>
+
+            <!-- Hot Weather section -->
+            <div class="text-center p-4 bg-gray-50 rounded-lg shadow-sm w-full md:w-auto">
+                <p class="font-semibold text-lg mb-2">Hot weather</p>
+                <div class="flex items-center justify-center space-x-2">
+                    <label for="hot-outside-input" class="text-sm font-medium">Outside:</label>
+                    <input type="number" id="hot-outside-input" value="18" class="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-center text-blue-500 font-bold" min="-10" max="25" step="1">
+                    <span class="text-sm">°C</span>
+                </div>
+                <div class="flex items-center justify-center space-x-2 mt-2">
+                    <label for="hot-water-input" class="text-sm font-medium">Water Target:</label>
+                    <input type="number" id="hot-water-input" value="26" class="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-center text-blue-500 font-bold" min="16" max="60" step="1">
+                    <span class="text-sm">°C</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col space-y-2">
+                <button id="set-values-btn" class="px-6 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors">
+                    Set Values
+                </button>
+                <button id="compare-btn" class="px-6 py-2 bg-indigo-500 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors">
+                    Compare
+                </button>
+            </div>
+        </div>
 
         <div class="flex justify-center items-center mb-6 space-x-4">
             <div class="flex items-center space-x-2">
@@ -35,8 +77,25 @@
                 <span class="text-sm font-medium text-gray-700">Linear Regression Line</span>
             </div>
             <div class="flex items-center space-x-2">
+                <div class="w-4 h-1 bg-gray-500 rounded-full border border-dashed"></div>
+                <span class="text-sm font-medium text-gray-700">Faded Line (Old)</span>
+            </div>
+            <!-- Added the slope value display -->
+            <div class="flex items-center space-x-2">
+                <span class="text-sm font-medium text-gray-700">Slope:</span>
+                <span id="slope-value" class="text-sm font-bold text-red-500"></span>
+            </div>
+            <div class="flex items-center space-x-2">
                 <div class="w-4 h-4 rounded-full bg-green-500"></div>
                 <span class="text-sm font-medium text-gray-700">Point at 8°C</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <div class="w-4 h-4 rounded-full bg-purple-500"></div>
+                <span class="text-sm font-medium text-gray-700">Custom Points</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="text-sm font-medium text-gray-700 font-bold">Δ</span>
+                <span class="text-sm font-medium text-gray-700">Delta (Water vs. Internal)</span>
             </div>
         </div>
         
@@ -47,16 +106,52 @@
 
         <div class="mt-8 p-4 bg-gray-50 rounded-lg">
             <h2 class="text-xl font-semibold mb-2 text-gray-700">Your Values:</h2>
-            <p class="text-sm text-gray-500 mb-4">Click a point on the chart to select it, then use the arrow keys to move it one degree at a time.</p>
+            <p class="text-sm text-gray-500 mb-4">Click a point on the chart to select it, then use the arrow keys to move it one degree at a time. The table updates automatically.</p>
             <table id="values-table" class="w-full text-left text-gray-600 border-collapse">
                 <thead>
                     <tr>
                         <th class="py-2 px-4 border-b-2 border-gray-300 font-semibold text-gray-800">Outside Temp (°C)</th>
                         <th class="py-2 px-4 border-b-2 border-gray-300 font-semibold text-gray-800">Water Temp (°C)</th>
+                        <th class="py-2 px-4 border-b-2 border-gray-300 font-semibold text-gray-800">Internal Temp (°C)</th>
                     </tr>
                 </thead>
                 <tbody id="values-table-body">
                     <!-- Table rows will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+            <h2 class="text-xl font-semibold mb-2 text-gray-700">Add a New Point:</h2>
+            <div class="flex items-end space-x-4">
+                <div class="flex-grow">
+                    <label for="outside-temp-input" class="block text-sm font-medium text-gray-700">Outside Temp (°C)</label>
+                    <input type="number" id="outside-temp-input" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" min="-10" max="25" step="any">
+                </div>
+                <div class="flex-grow">
+                    <label for="internal-temp-input" class="block text-sm font-medium text-gray-700">Internal Temp (°C)</label>
+                    <input type="number" id="internal-temp-input" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" min="15" max="30" step="any">
+                </div>
+                <button id="add-point-btn" class="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                    Add Point
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-8 p-4 bg-gray-50 rounded-lg" id="custom-points-container" style="display: none;">
+            <h2 class="text-xl font-semibold mb-2 text-gray-700">Custom Points:</h2>
+            <table class="w-full text-left text-gray-600 border-collapse">
+                <thead>
+                    <tr>
+                        <th class="py-2 px-4 border-b-2 border-gray-300 font-semibold text-gray-800">Outside Temp (°C)</th>
+                        <th class="py-2 px-4 border-b-2 border-gray-300 font-semibold text-gray-800">Water Temp (°C)</th>
+                        <th class="py-2 px-4 border-b-2 border-gray-300 font-semibold text-gray-800">Internal Temp (°C)</th>
+                        <th class="py-2 px-4 border-b-2 border-gray-300 font-semibold text-gray-800">Delta (°C)</th>
+                        <th class="py-2 px-4 border-b-2 border-gray-300 font-semibold text-gray-800">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="custom-points-table-body">
+                    <!-- Custom points will be populated here -->
                 </tbody>
             </table>
         </div>
@@ -67,88 +162,157 @@
             let chart;
             let draggedPointIndex = null;
             let selectedPointIndex = null;
-            const data = [
-                { x: -5, y: 50 },
-                { x: 18, y: 25 }
-            ];
+            let data = [];
             const specificPointX = 8;
+            const independentPoints = [];
             
             const valuesTableBody = document.getElementById('values-table-body');
+            const customPointsTableBody = document.getElementById('custom-points-table-body');
+            const customPointsContainer = document.getElementById('custom-points-container');
+            const outsideTempInput = document.getElementById('outside-temp-input');
+            const internalTempInput = document.getElementById('internal-temp-input');
+            const addPointBtn = document.getElementById('add-point-btn');
+            
+            // New elements for editable values
+            const coldOutsideInput = document.getElementById('cold-outside-input');
+            const coldWaterInput = document.getElementById('cold-water-input');
+            const hotOutsideInput = document.getElementById('hot-outside-input');
+            const hotWaterInput = document.getElementById('hot-water-input');
+            const setValuesBtn = document.getElementById('set-values-btn');
+            const compareBtn = document.getElementById('compare-btn');
+            const slopeValueSpan = document.getElementById('slope-value');
 
-            function updateValuesTable(allPoints) {
+            function updateDataFromInputs() {
+                const coldOutside = parseInt(coldOutsideInput.value, 10);
+                const coldWater = parseInt(coldWaterInput.value, 10);
+                const hotOutside = parseInt(hotOutsideInput.value, 10);
+                const hotWater = parseInt(hotWaterInput.value, 10);
+
+                if (!isNaN(coldOutside) && !isNaN(coldWater) && !isNaN(hotOutside) && !isNaN(hotWater)) {
+                    data = [
+                        { x: coldOutside, y: coldWater, it: 20 },
+                        { x: hotOutside, y: hotWater, it: 20 }
+                    ];
+                    updateChart();
+                } else {
+                    console.error("Invalid input values. Please enter numbers.");
+                }
+            }
+
+            function updateInputFieldsFromChart() {
+                // Ensure data is sorted for consistency
+                data.sort((a, b) => a.x - b.x);
+
+                if (data.length === 2) {
+                    coldOutsideInput.value = data[0].x;
+                    coldWaterInput.value = data[0].y;
+                    hotOutsideInput.value = data[1].x;
+                    hotWaterInput.value = data[1].y;
+                }
+            }
+
+            function updateValuesTable() {
+                const specificPointY = getRegressionY(specificPointX);
+                const allPoints = [
+                    ...data,
+                    { x: specificPointX, y: specificPointY, it: '--' }
+                ].sort((a, b) => a.x - b.x);
+
                 let tableHtml = '';
                 allPoints.forEach(point => {
                     tableHtml += `
                         <tr class="border-b border-gray-200 last:border-b-0">
                             <td class="py-2 px-4">${point.x}°C</td>
                             <td class="py-2 px-4">${point.y.toFixed(2)}°C</td>
+                            <td class="py-2 px-4">${point.it !== undefined ? point.it : '--'}°C</td>
                         </tr>
                     `;
                 });
                 valuesTableBody.innerHTML = tableHtml;
             }
 
-            function updateChart() {
-                // Ensure data points are sorted by x-value for correct line drawing
-                data.sort((a, b) => a.x - b.x);
+            function updateCustomPointsTable() {
+                let tableHtml = '';
+                independentPoints.forEach((point, index) => {
+                    const delta = (point.waterTemp - point.it).toFixed(2);
+                    tableHtml += `
+                        <tr class="border-b border-gray-200 last:border-b-0">
+                            <td class="py-2 px-4">${point.x}°C</td>
+                            <td class="py-2 px-4">${point.waterTemp.toFixed(2)}°C</td>
+                            <td class="py-2 px-4">${point.it ? point.it : '--'}°C</td>
+                            <td class="py-2 px-4">${delta}°C</td>
+                            <td class="py-2 px-4">
+                                <button data-index="${index}" class="delete-btn px-2 py-1 bg-red-500 text-white rounded-md text-xs hover:bg-red-600 transition-colors">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                customPointsTableBody.innerHTML = tableHtml;
 
+                if (independentPoints.length > 0) {
+                    customPointsContainer.style.display = 'block';
+                } else {
+                    customPointsContainer.style.display = 'none';
+                }
+            }
+            
+            function getRegressionY(x) {
+                data.sort((a, b) => a.x - b.x);
                 const x1 = data[0].x;
                 const y1 = data[0].y;
                 const x2 = data[1].x;
                 const y2 = data[1].y;
 
-                // Handle the case where the two points have the same x value to avoid division by zero
                 const m = (x2 - x1) !== 0 ? (y2 - y1) / (x2 - x1) : 0;
                 const b = y1 - m * x1;
 
+                if (x <= x1) {
+                    return y1;
+                } else if (x >= x2) {
+                    return y2;
+                } else {
+                    return m * x + b;
+                }
+            }
+
+            function updateChart() {
                 const regressionLineData = [];
                 const minX = -10;
                 const maxX = 25;
 
-                // Iterate through the entire temperature range to build the regression line
+                // Calculate the slope
+                data.sort((a, b) => a.x - b.x);
+                const x1 = data[0].x;
+                const y1 = data[0].y;
+                const x2 = data[1].x;
+                const y2 = data[1].y;
+                const m = (x2 - x1) !== 0 ? (y2 - y1) / (x2 - x1) : 0;
+                slopeValueSpan.textContent = m.toFixed(2);
+
                 for (let x = minX; x <= maxX; x += 1) {
-                    let y;
-                    if (x <= x1) {
-                        // For temperatures below the lowest data point, use the lowest point's y value
-                        y = y1;
-                    } else if (x >= x2) {
-                        // For temperatures above the highest data point, use the highest point's y value
-                        y = y2;
-                    } else {
-                        // For temperatures between the two points, use the linear regression formula
-                        y = m * x + b;
-                    }
-                    regressionLineData.push({ x: x, y: y });
+                    regressionLineData.push({ x: x, y: getRegressionY(x) });
                 }
                 
-                let specificPointY;
-                if (specificPointX <= x1) {
-                    specificPointY = y1;
-                } else if (specificPointX >= x2) {
-                    specificPointY = y2;
-                } else {
-                    specificPointY = m * specificPointX + b;
-                }
-                const specificPointData = [{ x: specificPointX, y: specificPointY }];
+                const specificPointY = getRegressionY(specificPointX);
+                const specificPointData = [{ x: specificPointX, y: specificPointY, it: '--' }];
 
-                // Combine all data points for the table and sort them
-                const allPoints = [
-                    { x: data[0].x, y: data[0].y },
-                    { x: data[1].x, y: data[1].y },
-                    { x: specificPointX, y: specificPointY }
-                ].sort((a, b) => a.x - b.x);
-
-                // Update point styles based on selection
                 const pointBorderColors = data.map((point, index) => index === selectedPointIndex ? 'rgba(59, 130, 246, 1)' : 'rgba(59, 130, 246, 0.5)');
                 const pointBorderWidths = data.map((point, index) => index === selectedPointIndex ? 3 : 1);
+                const pointRadii = data.map((point, index) => index === selectedPointIndex ? 8 : 6);
+                const pointHoverRadii = data.map((point, index) => index === selectedPointIndex ? 10 : 8);
 
                 chart.data.datasets[0].data = data;
                 chart.data.datasets[0].pointBorderColor = pointBorderColors;
                 chart.data.datasets[0].pointBorderWidth = pointBorderWidths;
+                chart.data.datasets[0].pointRadius = pointRadii;
+                chart.data.datasets[0].pointHoverRadius = pointHoverRadii;
                 chart.data.datasets[1].data = regressionLineData;
-                chart.data.datasets[2].data = specificPointData;
+                chart.data.datasets[3].data = specificPointData;
+                chart.data.datasets[4].data = independentPoints;
                 chart.update();
-                updateValuesTable(allPoints);
+                updateValuesTable();
+                updateCustomPointsTable();
+                updateInputFieldsFromChart();
             }
 
             const ctx = document.getElementById('regressionChart').getContext('2d');
@@ -162,23 +326,41 @@
                         pointRadius: 6,
                         pointHoverRadius: 8
                     }, {
-                        label: 'Regression Line',
+                        label: 'Linear Regression Line',
                         data: [],
                         type: 'line',
                         fill: false,
                         borderColor: 'rgba(239, 68, 68, 1)',
                         borderWidth: 2,
                         tension: 0.1,
-                        // Make the points on the line visible
-                        pointRadius: 4,
-                        pointHoverRadius: 6
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        pointBackgroundColor: 'rgba(239, 68, 68, 1)'
+                    }, {
+                        label: 'Faded Line (Old)',
+                        data: [],
+                        type: 'line',
+                        fill: false,
+                        borderColor: 'rgba(239, 68, 68, 0.3)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        tension: 0.1,
+                        pointRadius: 0,
+                        pointHoverRadius: 0
                     }, {
                         label: 'Point at 8°C',
                         data: [{ x: 8, y: 0 }],
-                        backgroundColor: 'rgba(34, 197, 94, 1)', // Green
+                        backgroundColor: 'rgba(34, 197, 94, 1)',
                         borderColor: 'rgba(34, 197, 94, 1)',
                         pointRadius: 8,
                         pointHoverRadius: 10
+                    }, {
+                        label: 'Custom Points',
+                        data: [],
+                        backgroundColor: 'rgba(168, 85, 247, 1)',
+                        borderColor: 'rgba(168, 85, 247, 1)',
+                        pointRadius: 6,
+                        pointHoverRadius: 8
                     }]
                 },
                 options: {
@@ -197,8 +379,8 @@
                             grid: {
                                 color: 'rgba(209, 213, 219, 0.5)'
                             },
-                            min: -10, // Fixed x-axis min
-                            max: 25  // Fixed x-axis max
+                            min: -10,
+                            max: 25
                         },
                         y: {
                             title: {
@@ -212,8 +394,8 @@
                             grid: {
                                 color: 'rgba(209, 213, 219, 0.5)'
                             },
-                            min: 20, // Fixed y-axis min
-                            max: 60  // Fixed y-axis max
+                            min: 16,
+                            max: 60
                         }
                     },
                     plugins: {
@@ -227,12 +409,19 @@
                                     if (label) {
                                         label += ': ';
                                     }
+                                    const point = context.raw;
+                                    
                                     if (context.datasetIndex === 0) {
-                                        label += `(${context.parsed.x}°C, ${context.parsed.y}°C)`;
+                                        label += `Water: ${point.y}°C, Internal: ${point.it ? point.it : '--'}°C`;
                                     } else if (context.datasetIndex === 1) {
-                                        label += `When Outside is ${context.parsed.x}°C, Water is ${context.parsed.y}°C`;
+                                        label = `Out Temp: ${point.x}°C, Water Temp: ${point.y.toFixed(2)}°C`;
                                     } else if (context.datasetIndex === 2) {
-                                        label += `Outside: ${context.parsed.x}°C, Water: ${context.parsed.y.toFixed(2)}°C`;
+                                        label += `When Outside is ${point.x}°C, Water is ${point.y.toFixed(2)}°C (Old)`;
+                                    } else if (context.datasetIndex === 3) {
+                                        label += `Outside: ${point.x}°C, Water: ${point.y.toFixed(2)}°C`;
+                                    } else if (context.datasetIndex === 4) {
+                                        const delta = (point.waterTemp - point.it).toFixed(2);
+                                        label += `Internal: ${point.it}°C, Water (from curve): ${point.waterTemp.toFixed(2)}°C, Delta: ${delta}°C`;
                                     }
                                     return label;
                                 }
@@ -242,8 +431,8 @@
                 }
             });
 
-            // Initial chart render
-            updateChart();
+            // Initial setup
+            updateDataFromInputs();
 
             // Make the chart interactive
             const canvas = document.getElementById('regressionChart');
@@ -251,12 +440,7 @@
             function getRelativeMousePos(event) {
                 const rect = canvas.getBoundingClientRect();
                 let clientX = event.clientX;
-                let clientY = event.clientY;
-
-                if (event.touches) {
-                    clientX = event.touches[0].clientX;
-                    clientY = event.touches[0].clientY;
-                }
+                let clientY = event.touches ? event.touches[0].clientY : event.clientY;
 
                 return {
                     x: clientX - rect.left,
@@ -291,7 +475,7 @@
                     const newY = chart.scales.y.getValueForPixel(mousePos.y);
                     
                     data[draggedPointIndex].x = Math.round(Math.max(-10, Math.min(25, newX)));
-                    data[draggedPointIndex].y = Math.round(Math.max(20, Math.min(60, newY)));
+                    data[draggedPointIndex].y = Math.round(Math.max(16, Math.min(60, newY)));
 
                     updateChart();
                 }
@@ -317,7 +501,7 @@
                             changed = true;
                             break;
                         case 'ArrowDown':
-                            point.y = Math.round(Math.max(20, point.y - 1));
+                            point.y = Math.round(Math.max(16, point.y - 1));
                             changed = true;
                             break;
                         case 'ArrowLeft':
@@ -332,6 +516,37 @@
 
                     if (changed) {
                         event.preventDefault();
+                        updateChart();
+                    }
+                }
+            });
+            
+            setValuesBtn.addEventListener('click', updateDataFromInputs);
+
+            compareBtn.addEventListener('click', () => {
+                const currentLineData = chart.data.datasets[1].data.map(p => ({ x: p.x, y: p.y }));
+                chart.data.datasets[2].data = currentLineData;
+                chart.update();
+            });
+
+            addPointBtn.addEventListener('click', () => {
+                const outsideTemp = parseFloat(outsideTempInput.value);
+                const internalTemp = parseFloat(internalTempInput.value);
+
+                if (!isNaN(outsideTemp) && !isNaN(internalTemp)) {
+                    const waterTemp = getRegressionY(outsideTemp);
+                    independentPoints.push({ x: outsideTemp, y: internalTemp, waterTemp: waterTemp, it: internalTemp });
+                    updateChart();
+                    outsideTempInput.value = '';
+                    internalTempInput.value = '';
+                }
+            });
+
+            customPointsTableBody.addEventListener('click', (event) => {
+                if (event.target.classList.contains('delete-btn')) {
+                    const index = parseInt(event.target.dataset.index, 10);
+                    if (!isNaN(index)) {
+                        independentPoints.splice(index, 1);
                         updateChart();
                     }
                 }
